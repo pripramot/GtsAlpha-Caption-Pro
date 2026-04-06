@@ -1,5 +1,5 @@
 # src/GtsAlpha_Caption_Pro_Thai_Final.py
-# GtsAlpha Caption Pro - UI เวอร์ชันสวยงาม + ดาวน์โหลดวิดีโอ + Gemma2 สรุป
+# GtsAlpha Caption Pro - UI เวอร์ชันสวยงาม + ดาวน์โหลดวิดีโอ + เลือกโมเดล AI
 
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
@@ -11,6 +11,8 @@ import datetime
 import threading
 import os
 import requests
+
+OLLAMA_API = "http://localhost:11434"
 
 # ====================== Logging ======================
 
@@ -101,12 +103,60 @@ def extract_caption_and_tts():
 
     threading.Thread(target=run, daemon=True).start()
 
+# ====================== Ollama Model Management ======================
+
+# Default popular Ollama models shown before connecting
+DEFAULT_MODELS = [
+    "gemma2:9b",
+    "gemma2:2b",
+    "llama3:8b",
+    "llama3:70b",
+    "mistral:7b",
+    "phi3:mini",
+    "qwen2:7b",
+]
+
+def fetch_ollama_models():
+    """Return list of locally installed Ollama model names, or DEFAULT_MODELS on error."""
+    try:
+        resp = requests.get(f"{OLLAMA_API}/api/tags", timeout=5)
+        if resp.status_code == 200:
+            models = [m["name"] for m in resp.json().get("models", [])]
+            return models if models else DEFAULT_MODELS
+    except Exception:
+        pass
+    return DEFAULT_MODELS
+
+def refresh_models():
+    """Refresh the model combobox with installed Ollama models."""
+    log("กำลังตรวจสอบโมเดลที่ติดตั้งใน Ollama...")
+    def run():
+        models = fetch_ollama_models()
+        root.after(0, lambda: _update_model_combo(models))
+    threading.Thread(target=run, daemon=True).start()
+
+def _update_model_combo(models):
+    model_combo['values'] = models
+    current = model_var.get()
+    if current not in models:
+        model_var.set(models[0] if models else "gemma2:9b")
+    count = len(models)
+    if models == DEFAULT_MODELS:
+        log(f"Ollama ไม่ตอบสนอง — แสดงรายการโมเดลที่แนะนำ ({count} รายการ)")
+    else:
+        log(f"พบโมเดลที่ติดตั้งแล้ว {count} รายการ ✓")
+
 # ====================== Gemma2 Summarize via Ollama ======================
 
 def summarize_with_gemma():
     url = url_entry.get().strip()
     if not url:
         messagebox.showwarning("กรุณากรอก URL", "วางลิงก์ YouTube ก่อนครับ")
+        return
+
+    selected_model = model_var.get().strip()
+    if not selected_model:
+        messagebox.showwarning("กรุณาเลือกโมเดล", "เลือกโมเดล AI ก่อนกดสรุปครับ")
         return
 
     def run():
@@ -123,23 +173,26 @@ def summarize_with_gemma():
             en_text = " ".join([item['text'] for item in transcript])
             th_text = GoogleTranslator(source='en', target='th').translate(en_text)
 
-            log("กำลังส่งข้อความให้ Gemma2 9B สรุป (ต้องรัน Ollama อยู่)...")
+            log(f"กำลังส่งข้อความให้ {selected_model} สรุป (ต้องรัน Ollama อยู่)...")
             payload = {
-                "model": "gemma2:9b",
+                "model": selected_model,
                 "prompt": f"สรุปเนื้อหาต่อไปนี้เป็นภาษาไทยให้กระชับ:\n\n{th_text[:4000]}",
                 "stream": False
             }
-            response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
+            response = requests.post(f"{OLLAMA_API}/api/generate", json=payload, timeout=120)
             if response.status_code == 200:
                 summary = response.json().get("response", "")
-                log("สรุปจาก Gemma2 9B:\n" + summary)
-                messagebox.showinfo("สรุปจาก Gemma2 9B", summary[:500] + ("..." if len(summary) > 500 else ""))
+                log(f"สรุปจาก {selected_model}:\n" + summary)
+                messagebox.showinfo(f"สรุปจาก {selected_model}",
+                                    summary[:500] + ("..." if len(summary) > 500 else ""))
             else:
                 log(f"Ollama ตอบกลับ: {response.status_code}")
-                messagebox.showerror("ผิดพลาด", "ไม่สามารถเชื่อมต่อ Ollama ได้\nโปรดรัน: ollama run gemma2:9b")
+                messagebox.showerror("ผิดพลาด",
+                                     f"ไม่สามารถเชื่อมต่อ Ollama ได้\nโปรดรัน: ollama run {selected_model}")
         except requests.exceptions.ConnectionError:
-            log("ไม่พบ Ollama กรุณารัน: ollama run gemma2:9b")
-            messagebox.showerror("ไม่พบ Ollama", "โปรดติดตั้งและรัน Ollama ก่อน\nคำสั่ง: ollama run gemma2:9b")
+            log(f"ไม่พบ Ollama กรุณารัน: ollama run {selected_model}")
+            messagebox.showerror("ไม่พบ Ollama",
+                                 f"โปรดติดตั้งและรัน Ollama ก่อน\nคำสั่ง: ollama run {selected_model}")
         except Exception as e:
             log(f"เกิดข้อผิดพลาด: {str(e)}")
             messagebox.showerror("ผิดพลาด", str(e))
@@ -150,7 +203,7 @@ def summarize_with_gemma():
 
 root = tk.Tk()
 root.title("GtsAlpha Caption Pro")
-root.geometry("1000x750")
+root.geometry("1000x820")
 root.configure(bg="#0a0f1c")
 root.resizable(True, True)
 
@@ -187,9 +240,32 @@ url_entry.pack(pady=8, padx=40, ipady=8)
 url_entry.insert(0, "https://youtu.be/kJQP7kiw5Fk")
 tk.Frame(input_frame, bg=CARD, height=10).pack()
 
+# ── Model selector row ──────────────────────────────────────────────────────
+model_frame = tk.Frame(root, bg=BG)
+model_frame.pack(pady=(4, 0))
+
+tk.Label(model_frame, text="🤖  โมเดล AI:", font=("TH Sarabun New", 13, "bold"),
+         bg=BG, fg=TEXT_LIGHT).grid(row=0, column=0, padx=(0, 8))
+
+model_var = tk.StringVar(value=DEFAULT_MODELS[0])
+model_combo = ttk.Combobox(model_frame, textvariable=model_var,
+                            values=DEFAULT_MODELS, width=28,
+                            font=("TH Sarabun New", 13), state="normal")
+model_combo.grid(row=0, column=1, padx=6)
+
+tk.Button(model_frame, text="🔄",
+          font=("TH Sarabun New", 12), relief="flat", cursor="hand2",
+          bg="#1e3a5f", fg=ACCENT, activebackground="#1e2937",
+          padx=8, pady=4,
+          command=refresh_models).grid(row=0, column=2, padx=6)
+
+tk.Label(model_frame, text="← รีเฟรชโมเดลจาก Ollama",
+         font=("TH Sarabun New", 11), bg=BG, fg=TEXT_DIM).grid(row=0, column=3, padx=4)
+# ────────────────────────────────────────────────────────────────────────────
+
 # Buttons
 btn_frame = tk.Frame(root, bg=BG)
-btn_frame.pack(pady=20)
+btn_frame.pack(pady=18)
 
 btn_cfg = dict(font=("TH Sarabun New", 13, "bold"), relief="flat", cursor="hand2",
                activeforeground="#0a0f1c", padx=18, pady=10)
@@ -202,7 +278,7 @@ tk.Button(btn_frame, text="📝  ดึง Caption + แปล + พากย์
           bg="#22c55e", fg="#0a0f1c", activebackground="#4ade80",
           command=extract_caption_and_tts, **btn_cfg).grid(row=0, column=1, padx=10, pady=6)
 
-tk.Button(btn_frame, text="🤖  สรุปด้วย Gemma2 9B",
+tk.Button(btn_frame, text="🤖  สรุปด้วย AI",
           bg="#a855f7", fg="#ffffff", activebackground="#c084fc",
           command=summarize_with_gemma, **btn_cfg).grid(row=0, column=2, padx=10, pady=6)
 
@@ -220,9 +296,10 @@ log_text.pack(padx=8, pady=8, fill="both", expand=True)
 
 # Footer
 tk.Label(root,
-         text="GtsAlpha Caption Pro  •  รองรับ YouTube & X/Twitter (สาธารณะ)  •  AI: Gemma2 9B via Ollama",
+         text="GtsAlpha Caption Pro  •  รองรับ YouTube & X/Twitter (สาธารณะ)  •  AI ผ่าน Ollama",
          font=("TH Sarabun New", 10), bg=BG, fg=TEXT_FOOTER).pack(side="bottom", pady=12)
 
 log("ระบบพร้อมใช้งาน • วางลิงก์ YouTube หรือ X/Twitter แล้วกดปุ่ม")
+log("กด 🔄 เพื่อโหลดรายการโมเดลที่ติดตั้งใน Ollama")
 
 root.mainloop()
