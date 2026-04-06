@@ -1,0 +1,3 @@
+# requirements-build.txt
+# ใช้สำหรับ build .exe เท่านั้น (ไม่ต้องติดตั้งเพื่อรันโปรแกรม)
+pyinstaller>=6.0
