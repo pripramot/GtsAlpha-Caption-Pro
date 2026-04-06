@@ -7,8 +7,8 @@ class TestSanitizeFilename:
     def test_removes_special_chars(self):
         assert sanitize_filename('file<>:"/\\|?*name') == "file name"
 
-    def test_collapses_underscores_and_spaces(self):
-        assert sanitize_filename("a___b   c") == "a b c"
+    def test_collapses_spaces(self):
+        assert sanitize_filename("a   b   c") == "a b c"
 
     def test_strips_whitespace(self):
         assert sanitize_filename("  hello  ") == "hello"

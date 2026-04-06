@@ -11,16 +11,16 @@ from gtsalpha.core.caption import (
 
 class TestFormatSrtTime:
     def test_zero_seconds(self):
-        assert _format_srt_time(0) == "0:00:00,000"
+        assert _format_srt_time(0) == "00:00:00,000"
 
     def test_one_hour(self):
-        assert _format_srt_time(3600) == "1:00:00,000"
+        assert _format_srt_time(3600) == "01:00:00,000"
 
     def test_mixed_time(self):
-        assert _format_srt_time(3661) == "1:01:01,000"
+        assert _format_srt_time(3661) == "01:01:01,000"
 
     def test_under_a_minute(self):
-        assert _format_srt_time(42) == "0:00:42,000"
+        assert _format_srt_time(42) == "00:00:42,000"
 
 
 # ── transcript_to_plain_text ────────────────────────────────────────────────
@@ -66,8 +66,8 @@ class TestCreateSrt:
 
     def test_timestamps_correct(self):
         srt = create_srt(self.SAMPLE_TRANSCRIPT, translate=False)
-        assert "0:00:00,000 --> 0:00:02,000" in srt
-        assert "0:00:02,000 --> 0:00:05,000" in srt
+        assert "00:00:00,000 --> 00:00:02,000" in srt
+        assert "00:00:02,000 --> 00:00:05,000" in srt
 
     def test_empty_transcript(self):
         srt = create_srt([], translate=False)

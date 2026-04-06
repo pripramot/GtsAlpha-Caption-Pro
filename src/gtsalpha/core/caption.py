@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import datetime
 import os
 from typing import Callable
 
@@ -119,5 +118,6 @@ def extract_and_save(
 
 def _format_srt_time(total_seconds: int) -> str:
     """Format seconds as ``HH:MM:SS,mmm`` for SRT files."""
-    td = datetime.timedelta(seconds=total_seconds)
-    return str(td) + ",000"
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},000"

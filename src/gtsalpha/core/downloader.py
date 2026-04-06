@@ -19,10 +19,10 @@ def sanitize_filename(name: str) -> str:
     Returns:
         A sanitised string safe for use as a file-system path component.
     """
-    # Replace common path-separator and control characters
-    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name)
-    # Collapse multiple underscores / spaces
-    sanitized = re.sub(r"[_\s]+", " ", sanitized).strip()
+    # Replace common path-separator and control characters with spaces
+    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', " ", name)
+    # Collapse multiple spaces
+    sanitized = re.sub(r"\s+", " ", sanitized).strip()
     # Limit length to avoid OS limits
     return sanitized[:200] if sanitized else "video"
 
