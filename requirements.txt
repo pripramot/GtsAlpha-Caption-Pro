@@ -1,3 +1,5 @@
 youtube-transcript-api
 deep-translator
 gtts
+yt-dlp
+requests

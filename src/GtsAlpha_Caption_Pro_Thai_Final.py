@@ -1,85 +1,228 @@
 # src/GtsAlpha_Caption_Pro_Thai_Final.py
-# GtsAlpha Caption Pro - เวอร์ชันภาษาไทย
+# GtsAlpha Caption Pro - UI เวอร์ชันสวยงาม + ดาวน์โหลดวิดีโอ + Gemma2 สรุป
 
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
+import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
 from deep_translator import GoogleTranslator
 from gtts import gTTS
 import datetime
 import threading
 import os
+import requests
 
-def log(message):
+# ====================== Logging ======================
+
+def log(msg):
     log_text.configure(state='normal')
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    log_text.insert(tk.END, f"[{timestamp}] {message}\n")
+    log_text.insert(tk.END, f"[{timestamp}] {msg}\n")
     log_text.see(tk.END)
     log_text.configure(state='disabled')
 
-def extract_and_process():
+# ====================== Video Download ======================
+
+def download_video():
     url = url_entry.get().strip()
     if not url:
-        messagebox.showwarning("กรุณากรอกข้อมูล", "กรุณาวางลิงก์ YouTube")
+        messagebox.showwarning("กรุณากรอก URL", "วางลิงก์ YouTube หรือ X/Twitter ก่อนครับ")
         return
 
     def run():
         try:
-            log("กำลังเริ่มทำงาน...")
-            video_id = url.split("v=")[-1].split("&")[0] if "v=" in url else url.split("/")[-1]
+            log(f"กำลังดาวน์โหลดวิดีโอจาก: {url}")
+            ydl_opts = {
+                'outtmpl': '%(title)s.%(ext)s',
+                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'noplaylist': True,
+                'quiet': False,
+                'no_warnings': False,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+            log("ดาวน์โหลดวิดีโอสำเร็จ ✓")
+            messagebox.showinfo("สำเร็จ", "ดาวน์โหลดวิดีโอเสร็จสมบูรณ์\nไฟล์อยู่ในโฟลเดอร์เดียวกับโปรแกรม")
+        except Exception as e:
+            log(f"ดาวน์โหลดล้มเหลว: {str(e)}")
+            messagebox.showerror("ผิดพลาด", f"ดาวน์โหลดไม่สำเร็จ\n{str(e)}\n\nโปรดตรวจสอบว่าเป็นวิดีโอสาธารณะ")
+
+    threading.Thread(target=run, daemon=True).start()
+
+# ====================== Caption + TTS ======================
+
+def extract_caption_and_tts():
+    url = url_entry.get().strip()
+    if not url:
+        messagebox.showwarning("กรุณากรอก URL", "วางลิงก์ก่อนครับ")
+        return
+
+    def run():
+        try:
+            log("กำลังดึงคำบรรยาย...")
+            # แยก video_id จาก URL รูปแบบต่าง ๆ
+            if "v=" in url:
+                video_id = url.split("v=")[-1].split("&")[0]
+            elif "youtu.be/" in url:
+                video_id = url.split("youtu.be/")[-1].split("?")[0]
+            else:
+                video_id = url.rstrip("/").split("/")[-1].split("?")[0]
             log(f"Video ID: {video_id}")
 
             transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
             en_text = " ".join([item['text'] for item in transcript])
             th_text = GoogleTranslator(source='en', target='th').translate(en_text)
 
-            # สร้าง .srt
-            def create_srt(transcript_list):
+            def create_srt(items, translate=False):
                 srt = ""
-                for i, item in enumerate(transcript_list):
-                    start = str(datetime.timedelta(seconds=item['start'])) + ",000"
-                    end = str(datetime.timedelta(seconds=item['start'] + item['duration'])) + ",000"
-                    text = GoogleTranslator(source='en', target='th').translate(item['text'])
+                for i, item in enumerate(items):
+                    start = str(datetime.timedelta(seconds=int(item['start']))) + ",000"
+                    end = str(datetime.timedelta(seconds=int(item['start'] + item['duration']))) + ",000"
+                    text = GoogleTranslator(source='en', target='th').translate(item['text']) if translate else item['text']
                     srt += f"{i+1}\n{start} --> {end}\n{text}\n\n"
                 return srt
 
             with open(f"TH_{video_id}.srt", "w", encoding="utf-8") as f:
-                f.write(create_srt(transcript))
-            with open(f"EN_{video_id}.srt", "w", encoding="utf-8") as f:
-                f.write(create_srt(transcript))
+                f.write(create_srt(transcript, translate=True))
+            log("สร้าง TH_.srt สำเร็จ ✓")
 
-            # เสียงพากย์
+            with open(f"EN_{video_id}.srt", "w", encoding="utf-8") as f:
+                f.write(create_srt(transcript, translate=False))
+            log("สร้าง EN_.srt สำเร็จ ✓")
+
             tts = gTTS(text=th_text, lang='th')
             tts.save(f"TH_{video_id}.mp3")
+            log("สร้างเสียงพากย์ .mp3 สำเร็จ ✓")
 
-            log("เสร็จสิ้น! ไฟล์ .srt และ .mp3 ถูกสร้างแล้ว")
-            messagebox.showinfo("สำเร็จ", "ประมวลผลเสร็จสมบูรณ์\nไฟล์ .srt และ .mp3 ถูกสร้างแล้ว")
-
+            messagebox.showinfo("สำเร็จ", "สร้างไฟล์ .srt (EN/TH) และเสียงพากย์ (.mp3) เรียบร้อยแล้ว")
         except Exception as e:
             log(f"เกิดข้อผิดพลาด: {str(e)}")
             messagebox.showerror("ผิดพลาด", str(e))
 
     threading.Thread(target=run, daemon=True).start()
 
-# GUI
+# ====================== Gemma2 Summarize via Ollama ======================
+
+def summarize_with_gemma():
+    url = url_entry.get().strip()
+    if not url:
+        messagebox.showwarning("กรุณากรอก URL", "วางลิงก์ YouTube ก่อนครับ")
+        return
+
+    def run():
+        try:
+            log("กำลังดึงคำบรรยายเพื่อสรุป...")
+            if "v=" in url:
+                video_id = url.split("v=")[-1].split("&")[0]
+            elif "youtu.be/" in url:
+                video_id = url.split("youtu.be/")[-1].split("?")[0]
+            else:
+                video_id = url.rstrip("/").split("/")[-1].split("?")[0]
+
+            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
+            en_text = " ".join([item['text'] for item in transcript])
+            th_text = GoogleTranslator(source='en', target='th').translate(en_text)
+
+            log("กำลังส่งข้อความให้ Gemma2 9B สรุป (ต้องรัน Ollama อยู่)...")
+            payload = {
+                "model": "gemma2:9b",
+                "prompt": f"สรุปเนื้อหาต่อไปนี้เป็นภาษาไทยให้กระชับ:\n\n{th_text[:4000]}",
+                "stream": False
+            }
+            response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
+            if response.status_code == 200:
+                summary = response.json().get("response", "")
+                log("สรุปจาก Gemma2 9B:\n" + summary)
+                messagebox.showinfo("สรุปจาก Gemma2 9B", summary[:500] + ("..." if len(summary) > 500 else ""))
+            else:
+                log(f"Ollama ตอบกลับ: {response.status_code}")
+                messagebox.showerror("ผิดพลาด", "ไม่สามารถเชื่อมต่อ Ollama ได้\nโปรดรัน: ollama run gemma2:9b")
+        except requests.exceptions.ConnectionError:
+            log("ไม่พบ Ollama กรุณารัน: ollama run gemma2:9b")
+            messagebox.showerror("ไม่พบ Ollama", "โปรดติดตั้งและรัน Ollama ก่อน\nคำสั่ง: ollama run gemma2:9b")
+        except Exception as e:
+            log(f"เกิดข้อผิดพลาด: {str(e)}")
+            messagebox.showerror("ผิดพลาด", str(e))
+
+    threading.Thread(target=run, daemon=True).start()
+
+# ====================== GUI ======================
+
 root = tk.Tk()
 root.title("GtsAlpha Caption Pro")
-root.geometry("800x600")
-root.configure(bg="#0f172a")
+root.geometry("1000x750")
+root.configure(bg="#0a0f1c")
+root.resizable(True, True)
 
-tk.Label(root, text="GtsAlpha Caption Pro", font=("TH Sarabun New", 24, "bold"), bg="#0f172a", fg="#00d4ff").pack(pady=20)
-tk.Label(root, text="ดึงคำบรรยาย YouTube แปลไทย + พากย์เสียง", font=("TH Sarabun New", 14), bg="#0f172a", fg="#e2e8f0").pack(pady=5)
+# สีหลัก
+ACCENT = "#00d4ff"
+BG = "#0a0f1c"
+CARD = "#121a2e"
+TEXT_LIGHT = "#e2e8f0"
+TEXT_DIM = "#94a3b8"
+TEXT_FOOTER = "#64748b"
+LOG_FG = "#4ade80"
 
-tk.Label(root, text="วางลิงก์ YouTube:", font=("TH Sarabun New", 12), bg="#0f172a", fg="#e2e8f0").pack(pady=10)
-url_entry = tk.Entry(root, font=("TH Sarabun New", 12), width=60, bg="#1e2937", fg="white")
-url_entry.pack(pady=5)
+# Header
+header = tk.Frame(root, bg=BG)
+header.pack(fill="x", pady=(24, 4))
+tk.Label(header, text="GtsAlpha", font=("TH Sarabun New", 44, "bold"), bg=BG, fg=ACCENT).pack()
+tk.Label(header, text="Caption Pro", font=("TH Sarabun New", 18), bg=BG, fg=TEXT_DIM).pack(pady=2)
+
+tk.Label(root, text="ดาวน์โหลดวิดีโอ • ดึงคำบรรยาย • แปลไทย • พากย์เสียง • สรุปด้วย AI",
+         font=("TH Sarabun New", 13), bg=BG, fg="#cbd5e1").pack(pady=8)
+
+# Input card
+input_frame = tk.Frame(root, bg=CARD)
+input_frame.pack(pady=20, padx=60, fill="x")
+
+tk.Label(input_frame, text="วางลิงก์ YouTube หรือ X/Twitter (เฉพาะวิดีโอสาธารณะ)",
+         font=("TH Sarabun New", 13), bg=CARD, fg=TEXT_LIGHT).pack(pady=(16, 6))
+
+url_entry = tk.Entry(input_frame, font=("TH Sarabun New", 14), width=70,
+                     bg="#1e2937", fg="#f1f5f9", relief="flat",
+                     insertbackground=ACCENT,
+                     highlightthickness=2, highlightcolor=ACCENT)
+url_entry.pack(pady=8, padx=40, ipady=8)
 url_entry.insert(0, "https://youtu.be/kJQP7kiw5Fk")
+tk.Frame(input_frame, bg=CARD, height=10).pack()
 
-tk.Button(root, text="เริ่มประมวลผล", font=("TH Sarabun New", 14, "bold"), bg="#00d4ff", fg="#0f172a", command=extract_and_process).pack(pady=20)
+# Buttons
+btn_frame = tk.Frame(root, bg=BG)
+btn_frame.pack(pady=20)
 
-log_text = scrolledtext.ScrolledText(root, height=12, bg="#1e2937", fg="#22c55e")
-log_text.pack(pady=10, padx=20, fill="both", expand=True)
+btn_cfg = dict(font=("TH Sarabun New", 13, "bold"), relief="flat", cursor="hand2",
+               activeforeground="#0a0f1c", padx=18, pady=10)
 
-log("ระบบพร้อมใช้งาน - วางลิงก์แล้วกดปุ่มเริ่ม")
+tk.Button(btn_frame, text="📥  ดาวน์โหลดวิดีโอ",
+          bg=ACCENT, fg="#0a0f1c", activebackground="#38bdf8",
+          command=download_video, **btn_cfg).grid(row=0, column=0, padx=10, pady=6)
+
+tk.Button(btn_frame, text="📝  ดึง Caption + แปล + พากย์",
+          bg="#22c55e", fg="#0a0f1c", activebackground="#4ade80",
+          command=extract_caption_and_tts, **btn_cfg).grid(row=0, column=1, padx=10, pady=6)
+
+tk.Button(btn_frame, text="🤖  สรุปด้วย Gemma2 9B",
+          bg="#a855f7", fg="#ffffff", activebackground="#c084fc",
+          command=summarize_with_gemma, **btn_cfg).grid(row=0, column=2, padx=10, pady=6)
+
+# Log area
+log_frame = tk.LabelFrame(root, text="  สถานะการทำงาน  ",
+                           font=("TH Sarabun New", 12, "bold"),
+                           bg=CARD, fg=ACCENT, padx=12, pady=8)
+log_frame.pack(pady=16, padx=50, fill="both", expand=True)
+
+log_text = scrolledtext.ScrolledText(log_frame, height=14,
+                                     font=("Consolas", 11),
+                                     bg="#0f172a", fg=LOG_FG, relief="flat",
+                                     state='disabled')
+log_text.pack(padx=8, pady=8, fill="both", expand=True)
+
+# Footer
+tk.Label(root,
+         text="GtsAlpha Caption Pro  •  รองรับ YouTube & X/Twitter (สาธารณะ)  •  AI: Gemma2 9B via Ollama",
+         font=("TH Sarabun New", 10), bg=BG, fg=TEXT_FOOTER).pack(side="bottom", pady=12)
+
+log("ระบบพร้อมใช้งาน • วางลิงก์ YouTube หรือ X/Twitter แล้วกดปุ่ม")
 
 root.mainloop()
