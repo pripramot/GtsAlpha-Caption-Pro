@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 import os
-from typing import Callable, Optional
+from typing import Callable
 
 from youtube_transcript_api import YouTubeTranscriptApi
 
@@ -14,7 +14,7 @@ from gtsalpha.utils.url_parser import extract_video_id
 
 def fetch_transcript(
     video_id: str,
-    languages: Optional[list[str]] = None,
+    languages: list[str] | None = None,
 ) -> list[dict]:
     """Fetch the transcript for a YouTube video.
 
@@ -70,7 +70,7 @@ def create_srt(
 def extract_and_save(
     url: str,
     output_dir: str = ".",
-    log_fn: Optional[Callable[[str], None]] = None,
+    log_fn: Callable[[str], None] | None = None,
 ) -> dict[str, str]:
     """Full pipeline: fetch transcript, translate, save SRT files and TTS.
 

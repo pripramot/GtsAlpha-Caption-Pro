@@ -5,9 +5,8 @@ from __future__ import annotations
 import datetime
 import tkinter as tk
 from tkinter import scrolledtext
-from typing import Optional
 
-from gtsalpha.gui.theme import CARD, LOG_BG, LOG_FG, ACCENT, FONT_LOG, FONT_LOG_LABEL
+from gtsalpha.gui.theme import ACCENT, CARD, FONT_LOG, FONT_LOG_LABEL, LOG_BG, LOG_FG
 
 
 class LogPanel(tk.LabelFrame):

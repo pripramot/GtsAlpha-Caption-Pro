@@ -23,9 +23,7 @@ NETWORK_MAX_RETRIES: int = 3
 NETWORK_BACKOFF_FACTOR: float = 1.0
 
 # AI summarization prompt template
-SUMMARIZE_PROMPT_TEMPLATE: str = (
-    "สรุปเนื้อหาต่อไปนี้เป็นภาษาไทยให้กระชับ:\n\n{text}"
-)
+SUMMARIZE_PROMPT_TEMPLATE: str = "สรุปเนื้อหาต่อไปนี้เป็นภาษาไทยให้กระชับ:\n\n{text}"
 SUMMARIZE_TEXT_LIMIT: int = 4000
 
 # yt-dlp default options

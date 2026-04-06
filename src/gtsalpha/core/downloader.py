@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Callable, Optional
+from typing import Callable
 
 import yt_dlp
 
@@ -30,7 +30,7 @@ def sanitize_filename(name: str) -> str:
 def download_video(
     url: str,
     output_dir: str = ".",
-    log_fn: Optional[Callable[[str], None]] = None,
+    log_fn: Callable[[str], None] | None = None,
 ) -> str:
     """Download a video from YouTube or X/Twitter.
 

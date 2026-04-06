@@ -65,9 +65,7 @@ def extract_video_id(url: str) -> str:
         if len(parts) >= 2 and parts[0] in ("embed", "shorts", "v", "live"):
             return _validate_video_id(parts[1], url)
 
-    raise InvalidURLError(
-        f"Cannot extract a YouTube video ID from: {url}"
-    )
+    raise InvalidURLError(f"Cannot extract a YouTube video ID from: {url}")
 
 
 def is_supported_url(url: str) -> bool:

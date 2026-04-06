@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Callable, Optional
+from typing import Callable
 
 from gtts import gTTS
 
@@ -12,7 +12,7 @@ def generate_speech(
     text: str,
     output_path: str,
     lang: str = "th",
-    log_fn: Optional[Callable[[str], None]] = None,
+    log_fn: Callable[[str], None] | None = None,
 ) -> str:
     """Generate a speech audio file from text.
 
@@ -36,7 +36,7 @@ def generate_speech_for_video(
     th_text: str,
     video_id: str,
     output_dir: str = ".",
-    log_fn: Optional[Callable[[str], None]] = None,
+    log_fn: Callable[[str], None] | None = None,
 ) -> str:
     """Convenience: generate TH speech for a given video ID.
 

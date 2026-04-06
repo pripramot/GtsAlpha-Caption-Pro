@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Callable, Optional
+from typing import Callable
 
 import requests
 
@@ -51,7 +51,7 @@ def summarize(
     api_url: str = OLLAMA_API,
     timeout: int = OLLAMA_GENERATE_TIMEOUT,
     max_retries: int = NETWORK_MAX_RETRIES,
-    log_fn: Optional[Callable[[str], None]] = None,
+    log_fn: Callable[[str], None] | None = None,
 ) -> str:
     """Summarize text using an Ollama model.
 
@@ -77,22 +77,18 @@ def summarize(
     if log_fn:
         log_fn(f"กำลังส่งข้อความให้ {model} สรุป (ต้องรัน Ollama อยู่)...")
 
-    last_error: Optional[Exception] = None
+    last_error: Exception | None = None
     for attempt in range(max_retries):
         try:
-            response = requests.post(
-                f"{api_url}/api/generate", json=payload, timeout=timeout
-            )
+            response = requests.post(f"{api_url}/api/generate", json=payload, timeout=timeout)
             if response.status_code == 200:
                 return response.json().get("response", "")
-            raise RuntimeError(
-                f"Ollama returned status {response.status_code}"
-            )
+            raise RuntimeError(f"Ollama returned status {response.status_code}")
         except requests.exceptions.ConnectionError:
             raise
         except Exception as exc:
             last_error = exc
             if attempt < max_retries - 1:
-                time.sleep(NETWORK_BACKOFF_FACTOR * (2 ** attempt))
+                time.sleep(NETWORK_BACKOFF_FACTOR * (2**attempt))
 
     raise last_error  # type: ignore[misc]

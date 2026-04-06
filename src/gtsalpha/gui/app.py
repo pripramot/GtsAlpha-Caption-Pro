@@ -6,7 +6,6 @@ import os
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from typing import Optional
 
 from gtsalpha.core import caption, summarizer, tts
 from gtsalpha.core.downloader import download_video
@@ -85,9 +84,9 @@ class App:
         # Output directory row
         dir_frame = tk.Frame(input_frame, bg=T.CARD)
         dir_frame.pack(pady=(4, 12), padx=40, fill="x")
-        tk.Label(
-            dir_frame, text="📁 บันทึกไฟล์ที่:", font=T.FONT_SMALL, bg=T.CARD, fg=T.TEXT_DIM
-        ).pack(side="left")
+        tk.Label(dir_frame, text="📁 บันทึกไฟล์ที่:", font=T.FONT_SMALL, bg=T.CARD, fg=T.TEXT_DIM).pack(
+            side="left"
+        )
         self._dir_label = tk.Label(
             dir_frame,
             text=self.output_dir,
@@ -215,7 +214,7 @@ class App:
         """Thread-safe logging to the log panel."""
         self.log_panel.log(msg)
 
-    def _get_url(self) -> Optional[str]:
+    def _get_url(self) -> str | None:
         """Return the trimmed URL from the entry, or show a warning and return None."""
         url = self.url_entry.get().strip()
         if not url:
@@ -268,9 +267,7 @@ class App:
 
         def run() -> None:
             try:
-                result = caption.extract_and_save(
-                    url, output_dir=self.output_dir, log_fn=self.log
-                )
+                result = caption.extract_and_save(url, output_dir=self.output_dir, log_fn=self.log)
                 tts.generate_speech_for_video(
                     result["th_text"],
                     result["video_id"],
@@ -308,9 +305,7 @@ class App:
                 en_text = caption.transcript_to_plain_text(transcript)
                 th_text = translate_text(en_text)
 
-                summary = summarizer.summarize(
-                    th_text, model=selected_model, log_fn=self.log
-                )
+                summary = summarizer.summarize(th_text, model=selected_model, log_fn=self.log)
                 self.log(f"สรุปจาก {selected_model}:\n{summary}")
                 messagebox.showinfo(
                     f"สรุปจาก {selected_model}",

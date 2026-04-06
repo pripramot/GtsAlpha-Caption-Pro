@@ -2,8 +2,8 @@
 # Backward-compatible entry point — delegates to the modular package.
 # Usage:  python src/GtsAlpha_Caption_Pro_Thai_Final.py
 
-import sys
 import os
+import sys
 
 # Ensure the src directory is on the import path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
