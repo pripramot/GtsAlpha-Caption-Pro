@@ -11,6 +11,35 @@
 - **เลือกโมเดล AI ได้จาก GUI** — รีเฟรชรายการโมเดลที่ติดตั้งใน Ollama แบบ real-time
 - รองรับโมเดลทุกตัวที่ run บน Ollama เช่น Gemma2 9B, Llama3, Mistral, Phi3 ฯลฯ
 - GUI ภาษาไทย Dark Theme
+- **เลือกโฟลเดอร์บันทึกไฟล์** ได้จาก GUI
+- **URL validation** — ตรวจสอบลิงก์อัตโนมัติก่อนประมวลผล
+- **Retry logic** — ระบบลองใหม่อัตโนมัติเมื่อเครือข่ายมีปัญหา
+
+---
+
+### โครงสร้างโปรเจกต์
+
+```
+src/
+  gtsalpha/
+    __init__.py          # Package metadata
+    __main__.py          # Entry point (python -m gtsalpha)
+    core/
+      caption.py         # Transcript extraction + SRT generation
+      downloader.py      # yt-dlp video downloader
+      summarizer.py      # Ollama AI summarization client
+      translator.py      # Google Translate wrapper with retries
+      tts.py             # Text-to-speech (gTTS)
+    gui/
+      app.py             # Main Tk application window
+      theme.py           # Colors, fonts, style constants
+      widgets.py         # Thread-safe log panel widget
+    utils/
+      config.py          # Application constants
+      url_parser.py      # YouTube URL parsing & validation
+  GtsAlpha_Caption_Pro_Thai_Final.py  # Backward-compatible entry point
+tests/                   # Unit tests (pytest)
+```
 
 ---
 
@@ -19,6 +48,18 @@
 ```bash
 pip install -r requirements.txt
 python src/GtsAlpha_Caption_Pro_Thai_Final.py
+
+# หรือรันเป็น module:
+PYTHONPATH=src python -m gtsalpha
+```
+
+---
+
+### วิธีรันเทสต์
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest tests/ -v
 ```
 
 ---

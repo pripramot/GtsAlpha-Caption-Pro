@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gtsalpha-caption-pro"
+version = "1.0.0"
+description = "YouTube caption extraction, Thai translation, TTS, and AI summarization"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dependencies = [
+    "youtube-transcript-api>=0.6.1",
+    "deep-translator>=1.11.4",
+    "gtts>=2.5.1",
+    "yt-dlp>=2024.1.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+gtsalpha = "gtsalpha.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# ── Ruff ─────────────────────────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py39"
+src = ["src", "tests"]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["gtsalpha"]
+
+# ── Pytest ───────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

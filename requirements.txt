@@ -1,5 +1,5 @@
-youtube-transcript-api
-deep-translator
-gtts
-yt-dlp
-requests
+youtube-transcript-api>=0.6.1
+deep-translator>=1.11.4
+gtts>=2.5.1
+yt-dlp>=2024.1.0
+requests>=2.31.0
