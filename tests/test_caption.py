@@ -22,6 +22,16 @@ class TestFormatSrtTime:
     def test_under_a_minute(self):
         assert _format_srt_time(42) == "00:00:42,000"
 
+    def test_float_with_milliseconds(self):
+        assert _format_srt_time(1.234) == "00:00:01,234"
+
+    def test_float_rounding(self):
+        # 2.501 seconds → 2501 ms, no rounding ambiguity
+        assert _format_srt_time(2.501) == "00:00:02,501"
+
+    def test_float_hour_with_ms(self):
+        assert _format_srt_time(3661.5) == "01:01:01,500"
+
 
 # ── transcript_to_plain_text ────────────────────────────────────────────────
 
@@ -68,6 +78,11 @@ class TestCreateSrt:
         srt = create_srt(self.SAMPLE_TRANSCRIPT, translate=False)
         assert "00:00:00,000 --> 00:00:02,000" in srt
         assert "00:00:02,000 --> 00:00:05,000" in srt
+
+    def test_float_timestamps(self):
+        items = [{"text": "Hi", "start": 1.5, "duration": 2.25}]
+        srt = create_srt(items, translate=False)
+        assert "00:00:01,500 --> 00:00:03,750" in srt
 
     def test_empty_transcript(self):
         srt = create_srt([], translate=False)

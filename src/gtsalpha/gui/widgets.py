@@ -6,7 +6,16 @@ import datetime
 import tkinter as tk
 from tkinter import scrolledtext
 
-from gtsalpha.gui.theme import ACCENT, CARD, FONT_LOG, FONT_LOG_LABEL, LOG_BG, LOG_FG
+from gtsalpha.gui.theme import (
+    ACCENT,
+    CARD,
+    ENTRY_BG,
+    FONT_LOG,
+    FONT_LOG_LABEL,
+    FONT_SMALL,
+    LOG_BG,
+    LOG_FG,
+)
 
 
 class LogPanel(tk.LabelFrame):
@@ -24,6 +33,24 @@ class LogPanel(tk.LabelFrame):
             **kwargs,
         )
         self._root = root
+
+        # Toolbar: label + clear button
+        toolbar = tk.Frame(self, bg=CARD)
+        toolbar.pack(fill="x", padx=8, pady=(4, 0))
+        tk.Button(
+            toolbar,
+            text="🗑  ล้างล็อก",
+            font=FONT_SMALL,
+            relief="flat",
+            bg=ENTRY_BG,
+            fg=ACCENT,
+            activebackground=LOG_BG,
+            cursor="hand2",
+            padx=6,
+            pady=2,
+            command=self._clear,
+        ).pack(side="right")
+
         self._text = scrolledtext.ScrolledText(
             self,
             height=14,
@@ -44,4 +71,9 @@ class LogPanel(tk.LabelFrame):
         self._text.configure(state="normal")
         self._text.insert(tk.END, f"[{timestamp}] {msg}\n")
         self._text.see(tk.END)
+        self._text.configure(state="disabled")
+
+    def _clear(self) -> None:
+        self._text.configure(state="normal")
+        self._text.delete("1.0", tk.END)
         self._text.configure(state="disabled")

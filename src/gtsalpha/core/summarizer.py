@@ -91,4 +91,6 @@ def summarize(
             if attempt < max_retries - 1:
                 time.sleep(NETWORK_BACKOFF_FACTOR * (2**attempt))
 
-    raise last_error  # type: ignore[misc]
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("summarize called with max_retries=0")

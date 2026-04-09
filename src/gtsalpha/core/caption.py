@@ -53,10 +53,8 @@ def create_srt(
     """
     parts: list[str] = []
     for i, item in enumerate(items, start=1):
-        start_sec = int(item["start"])
-        end_sec = int(item["start"] + item["duration"])
-        start_ts = _format_srt_time(start_sec)
-        end_ts = _format_srt_time(end_sec)
+        start_ts = _format_srt_time(float(item["start"]))
+        end_ts = _format_srt_time(float(item["start"]) + float(item["duration"]))
         text = (
             translate_text(item["text"], source=source_lang, target=target_lang)
             if translate
@@ -116,8 +114,10 @@ def extract_and_save(
     }
 
 
-def _format_srt_time(total_seconds: int) -> str:
+def _format_srt_time(total_seconds: float) -> str:
     """Format seconds as ``HH:MM:SS,mmm`` for SRT files."""
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d},000"
+    total_ms = round(total_seconds * 1000)
+    hours, remainder = divmod(total_ms, 3_600_000)
+    minutes, remainder = divmod(remainder, 60_000)
+    seconds, ms = divmod(remainder, 1_000)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},{ms:03d}"
