@@ -1,61 +1,257 @@
 # GtsAlpha Caption Pro
 
-เครื่องมือ Python สำหรับดึงคำบรรยาย YouTube แปลไทย + พากย์เสียงไทย + สรุปด้วย AI
+<div align="center">
 
-### ฟีเจอร์หลัก
-- ดาวน์โหลดวิดีโอจาก YouTube และ X/Twitter (เฉพาะสาธารณะ) ด้วย yt-dlp
-- ดึงคำบรรยายจากวิดีโอ YouTube
-- แปลเป็นภาษาไทยอัตโนมัติ
-- บันทึกเป็นไฟล์ .srt (EN และ TH พร้อม timestamp)
-- สร้างเสียงพากย์ไทย (.mp3)
-- **เลือกโมเดล AI ได้จาก GUI** — รีเฟรชรายการโมเดลที่ติดตั้งใน Ollama แบบ real-time
-- รองรับโมเดลทุกตัวที่ run บน Ollama เช่น Gemma2 9B, Llama3, Mistral, Phi3 ฯลฯ
-- GUI ภาษาไทย Dark Theme
-- **เลือกโฟลเดอร์บันทึกไฟล์** ได้จาก GUI
-- **URL validation** — ตรวจสอบลิงก์อัตโนมัติก่อนประมวลผล
-- **Retry logic** — ระบบลองใหม่อัตโนมัติเมื่อเครือข่ายมีปัญหา
+🎬 **Desktop App ดึงคำบรรยาย YouTube · แปลไทย · พากย์เสียง · AI สรุป**
+
+[![Tauri v2](https://img.shields.io/badge/Tauri-v2-24C8D8?logo=tauri)](https://tauri.app)
+[![Rust](https://img.shields.io/badge/Rust-1.77+-orange?logo=rust)](https://www.rust-lang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/pripramot/GtsAlpha-Caption-Pro/releases)
+
+</div>
 
 ---
 
-### โครงสร้างโปรเจกต์
+## ภาพรวมโครงการ
 
-```
-src/
-  gtsalpha/
-    __init__.py          # Package metadata
-    __main__.py          # Entry point (python -m gtsalpha)
-    core/
-      caption.py         # Transcript extraction + SRT generation
-      downloader.py      # yt-dlp video downloader
-      summarizer.py      # Ollama AI summarization client
-      translator.py      # Google Translate wrapper with retries
-      tts.py             # Text-to-speech (gTTS)
-    gui/
-      app.py             # Main Tk application window
-      theme.py           # Colors, fonts, style constants
-      widgets.py         # Thread-safe log panel widget
-    utils/
-      config.py          # Application constants
-      url_parser.py      # YouTube URL parsing & validation
-  GtsAlpha_Caption_Pro_Thai_Final.py  # Backward-compatible entry point
-tests/                   # Unit tests (pytest)
-```
+**GtsAlpha Caption Pro** คือ Desktop Application ที่สร้างด้วย **Tauri v2** (Rust + WebView)
+ออกแบบมาเพื่อ:
+
+- 📥 **ดึงคำบรรยาย** (Subtitle / Caption) จาก YouTube และ X/Twitter
+- 🌏 **แปลเป็นภาษาไทย** อัตโนมัติ พร้อมบันทึกเป็นไฟล์ `.srt`
+- 🔊 **สร้างเสียงพากย์ไทย** (.mp3) ด้วย gTTS
+- 🤖 **สรุปเนื้อหาด้วย AI** ผ่าน Ollama (ทำงาน Offline บนเครื่อง)
+- 📹 **ดาวน์โหลดวิดีโอ** ด้วย yt-dlp
 
 ---
 
-### วิธีรันแบบ Python (สำหรับ Developer)
+## สถาปัตยกรรม
+
+```
+GtsAlpha Caption Pro
+├── Frontend  — HTML / CSS / Vanilla JavaScript
+│               Dark Theme · ภาษาไทย · Responsive
+├── Backend   — Rust (Tauri v2 Commands)
+│               ประมวลผลหลัก · API calls · File I/O
+└── WebView   — ระบบปฏิบัติการ (ไม่ฝัง Chromium)
+                WebView2 (Windows) · WKWebView (macOS) · WebKitGTK (Linux)
+```
+
+### ทำไม Tauri v2? (ไม่ใช่ Electron)
+
+| รายการ | Tauri v2 | Electron |
+|---|---|---|
+| Chromium | ❌ ไม่ฝัง | ✅ ฝังอยู่ใน package |
+| ขนาดโปรแกรม | ~3–10 MB | ~120–200 MB |
+| RAM ขณะรัน | น้อยกว่า | สูงกว่า (รัน Chromium แยก) |
+| Backend | Rust | Node.js |
+| ความปลอดภัย | Rust memory safety | ขึ้นอยู่กับ JS |
+
+> Tauri ใช้ WebView ที่มีอยู่แล้วในระบบปฏิบัติการ จึงเบาและเร็วกว่า Electron มาก
+
+---
+
+## ความต้องการของระบบ
+
+### สำหรับ Developer (Build จาก Source)
+
+| รายการ | เวอร์ชัน |
+|---|---|
+| [Rust](https://rustup.rs) | 1.77.2+ |
+| [Node.js](https://nodejs.org) | 18.0.0+ |
+| npm | 9.0.0+ |
+| WebView2 Runtime (Windows) | ติดตั้งอัตโนมัติ |
+
+**Linux** ต้องการ library เพิ่มเติม:
 
 ```bash
-pip install -r requirements.txt
-python src/GtsAlpha_Caption_Pro_Thai_Final.py
+# Ubuntu / Debian
+sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
 
-# หรือรันเป็น module:
-PYTHONPATH=src python -m gtsalpha
+# Fedora
+sudo dnf install webkit2gtk4.1-devel gtk3-devel
+```
+
+### สำหรับฟีเจอร์ AI Summarize (Ollama)
+
+| รายการ | ขั้นต่ำ | แนะนำ |
+|---|---|---|
+| RAM | 8 GB | 16 GB+ |
+| GPU VRAM (4-bit) | 6 GB | 8 GB+ |
+| พื้นที่ดิสก์ (โมเดล) | 5 GB | 20 GB+ |
+
+---
+
+## ขั้นตอนการติดตั้ง
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/pripramot/GtsAlpha-Caption-Pro.git
+cd GtsAlpha-Caption-Pro
+```
+
+### 2. ติดตั้ง Rust
+
+```bash
+# macOS / Linux
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# Windows: ดาวน์โหลด rustup-init.exe จาก https://rustup.rs
+```
+
+### 3. ติดตั้ง Node.js Dependencies
+
+```bash
+npm install
+```
+
+### 4. ติดตั้ง Tauri CLI (Optional)
+
+```bash
+npm install -g @tauri-apps/cli@^2
+# หรือใช้ผ่าน npx โดยตรง
 ```
 
 ---
 
-### วิธีรันเทสต์
+## วิธี Build และ Run
+
+### Development Mode (Hot Reload)
+
+```bash
+npm run dev
+# หรือ
+npx tauri dev
+```
+
+### Production Build
+
+```bash
+npm run build
+# หรือ
+npx tauri build
+```
+
+ไฟล์ติดตั้งจะอยู่ที่:
+
+| OS | ที่อยู่ไฟล์ |
+|---|---|
+| Windows | `src-tauri/target/release/bundle/msi/*.msi` |
+| macOS | `src-tauri/target/release/bundle/dmg/*.dmg` |
+| Linux | `src-tauri/target/release/bundle/appimage/*.AppImage` |
+
+---
+
+## ขั้นตอนการ Publish Package
+
+### npm Publish
+
+```bash
+# 1. เข้าสู่ระบบ npmjs.com
+npm login
+
+# 2. ตรวจสอบ package.json และ version
+cat package.json
+
+# 3. Publish
+npm publish --access public
+
+# 4. ยืนยันผล
+npm view gtsalpha-caption-pro
+```
+
+### GitHub Release (Desktop App Binary)
+
+```bash
+# 1. Build
+npm run build
+
+# 2. สร้าง Git Tag
+git tag v1.0.0
+git push origin v1.0.0
+
+# 3. สร้าง Release บน GitHub → อัปโหลด binary
+# https://github.com/pripramot/GtsAlpha-Caption-Pro/releases/new
+```
+
+---
+
+## โครงสร้างโปรเจกต์
+
+```
+GtsAlpha-Caption-Pro/
+├── src/                          # Frontend (HTML / CSS / JS)
+│   ├── index.html                # หน้า UI หลักของ App
+│   ├── styles.css                # Dark Theme Styles
+│   └── main.js                  # Logic + Tauri API calls
+├── src-tauri/                    # Backend (Rust)
+│   ├── Cargo.toml                # Rust dependencies
+│   ├── tauri.conf.json           # Tauri configuration
+│   ├── build.rs                  # Build script
+│   ├── capabilities/
+│   │   └── default.json          # Tauri v2 permissions
+│   ├── icons/                    # App icons
+│   └── src/
+│       ├── main.rs               # Entry point
+│       └── lib.rs                # Tauri commands (Rust)
+├── src/gtsalpha/                 # Python package (core logic)
+│   ├── core/                     # Caption, Translate, TTS, AI
+│   ├── gui/                      # Tkinter GUI (legacy)
+│   └── utils/                    # Utilities
+├── index.html                    # หน้าประชาสัมพันธ์โครงการ
+├── package.json                  # npm package config
+├── pyproject.toml                # Python package config
+├── TASK.md                       # Task Checklist
+└── README.md                     # เอกสารนี้
+```
+
+---
+
+## วิธีใช้งาน (คู่มือภาษาไทย)
+
+### 1. ดึงคำบรรยาย
+
+1. เปิดโปรแกรมด้วย `npm run dev`
+2. ไปแท็บ **📥 ดึงคำบรรยาย**
+3. วาง URL YouTube ในช่อง **ลิงก์วิดีโอ**
+4. เลือกภาษาคำบรรยายต้นทาง
+5. กด 📁 เลือกโฟลเดอร์บันทึกไฟล์
+6. เลือก checkbox ที่ต้องการ (แปลไทย / TTS / ดาวน์โหลด)
+7. กด **▶️ เริ่มประมวลผล**
+
+### 2. แปลคำบรรยาย
+
+1. ไปแท็บ **🌏 แปลภาษา**
+2. กด **📁 เลือกไฟล์** เลือกไฟล์ `.srt` ที่มีอยู่
+3. เลือกภาษาต้นทาง
+4. กด **🌏 แปลเป็นภาษาไทย**
+
+### 3. สร้างเสียงพากย์ (TTS)
+
+1. ไปแท็บ **🔊 พากย์เสียงไทย**
+2. เลือกไฟล์ `.srt` ภาษาไทย
+3. เลือกความเร็วเสียง
+4. กด **🔊 สร้างเสียงพากย์**
+
+### 4. AI สรุปเนื้อหา (Ollama)
+
+1. ติดตั้ง [Ollama](https://ollama.com)
+2. ดาวน์โหลดโมเดล:
+   ```bash
+   ollama pull gemma2:9b
+   # หรือ
+   ollama pull llama3:8b
+   ```
+3. ไปแท็บ **🤖 สรุปด้วย AI**
+4. กด **🔄** เพื่อโหลดรายการโมเดล
+5. วางข้อความและกด **🤖 สรุปด้วย AI**
+
+---
+
+## Tests (Python)
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
@@ -64,41 +260,16 @@ python -m pytest tests/ -v
 
 ---
 
-### วิธีสร้างไฟล์ติดตั้ง (.exe) สำหรับ Windows
+## Contributing
 
-#### ขั้นตอน
-1. ติดตั้ง [Python 3.9+](https://www.python.org/downloads/) (ติ๊ก "Add Python to PATH")
-2. ดับเบิลคลิกที่ไฟล์ **`build_installer.bat`** ในโฟลเดอร์โปรเจกต์
-3. รอ build เสร็จ → ไฟล์ `.exe` จะอยู่ที่ `dist\GtsAlpha_Caption_Pro.exe`
-4. คัดลอก `dist\GtsAlpha_Caption_Pro.exe` ไปวางที่ไหนก็ได้ แล้วดับเบิลคลิกรัน
-
-#### Linux / macOS
-```bash
-chmod +x build_installer.sh
-./build_installer.sh
-# ไฟล์อยู่ที่ dist/GtsAlpha_Caption_Pro
-```
+1. Fork repository
+2. สร้าง branch: `git checkout -b feature/your-feature`
+3. Commit: `git commit -m "feat: add your feature"`
+4. Push: `git push origin feature/your-feature`
+5. เปิด Pull Request
 
 ---
 
-### ใช้งานฟีเจอร์สรุปด้วย AI (Ollama)
+## License
 
-1. ติดตั้ง [Ollama](https://ollama.com)
-2. ดาวน์โหลดโมเดลที่ต้องการ เช่น:
-   ```bash
-   ollama run gemma2:9b
-   # หรือ
-   ollama run llama3:8b
-   # หรือ
-   ollama run mistral:7b
-   ```
-3. เปิดโปรแกรม → กด **🔄** เพื่อโหลดรายการโมเดลที่ติดตั้งแล้ว → เลือกโมเดล → กด **🤖 สรุปด้วย AI**
-
-### ความต้องการของระบบ (สำหรับ Gemma2 9B)
-| รายการ | ขั้นต่ำ | แนะนำ |
-|---|---|---|
-| RAM | 12 GB | 16 GB+ |
-| GPU VRAM | 6 GB (4-bit) | 8 GB+ |
-| พื้นที่ดิสก์ | 6 GB (โมเดล) | 20 GB+ |
-
-พัฒนาเพื่อใช้ในงานวิจัยเรื่องระบบอัตโนมัติและการตลาดโซเชียลมีเดีย
+MIT © 2025 [GtsAlpha](https://github.com/pripramot)

@@ -1,0 +1,34 @@
+[package]
+name = "gtsalpha-caption-pro"
+version = "1.0.0"
+description = "GtsAlpha Caption Pro — YouTube caption extractor with Thai translation, TTS, and AI summarization"
+authors = ["GtsAlpha <pripramot@github.com>"]
+license = "MIT"
+repository = "https://github.com/pripramot/GtsAlpha-Caption-Pro"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "gtsalpha_caption_pro_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-http = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+tokio = { version = "1", features = ["full"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

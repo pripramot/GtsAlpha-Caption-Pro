@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GtsAlpha Caption Pro</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🎬</span>
+      <span class="logo-text">GtsAlpha<br/><em>Caption Pro</em></span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-tab="extract">
+        <span class="nav-icon">📥</span>
+        <span>ดึงคำบรรยาย</span>
+      </button>
+      <button class="nav-btn" data-tab="translate">
+        <span class="nav-icon">🌏</span>
+        <span>แปลภาษา</span>
+      </button>
+      <button class="nav-btn" data-tab="tts">
+        <span class="nav-icon">🔊</span>
+        <span>พากย์เสียงไทย</span>
+      </button>
+      <button class="nav-btn" data-tab="ai">
+        <span class="nav-icon">🤖</span>
+        <span>สรุปด้วย AI</span>
+      </button>
+      <button class="nav-btn" data-tab="settings">
+        <span class="nav-icon">⚙️</span>
+        <span>ตั้งค่า</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="ollama-status" class="status-badge offline">
+        <span class="status-dot"></span>
+        <span class="status-text">Ollama</span>
+      </div>
+      <div class="version-info">v<span id="app-version">1.0.0</span></div>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <main class="main-content">
+
+    <!-- Extract Tab -->
+    <section class="tab-panel active" id="tab-extract">
+      <div class="panel-header">
+        <h1>📥 ดึงคำบรรยายจาก YouTube</h1>
+        <p class="subtitle">ใส่ลิงก์ YouTube หรือ X/Twitter เพื่อดึงคำบรรยาย</p>
+      </div>
+
+      <div class="card">
+        <div class="input-group">
+          <label for="url-input">ลิงก์วิดีโอ</label>
+          <div class="input-row">
+            <input
+              type="url"
+              id="url-input"
+              placeholder="https://www.youtube.com/watch?v=..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="btn btn-primary" id="btn-extract">
+              <span class="btn-icon">📥</span> ดึงคำบรรยาย
+            </button>
+          </div>
+          <div id="url-error" class="error-msg hidden"></div>
+        </div>
+
+        <div class="options-row">
+          <div class="option-group">
+            <label for="lang-select">ภาษาคำบรรยาย</label>
+            <select id="lang-select">
+              <option value="en">English (EN)</option>
+              <option value="th">ภาษาไทย (TH)</option>
+              <option value="auto">อัตโนมัติ</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label for="output-dir-display">โฟลเดอร์บันทึก</label>
+            <div class="input-row">
+              <input type="text" id="output-dir-display" readonly placeholder="เลือกโฟลเดอร์..." />
+              <button class="btn btn-secondary" id="btn-choose-dir">📁</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="checkboxes-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-translate" checked />
+            <span>แปลเป็นไทย (.srt)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-tts" />
+            <span>สร้างเสียงพากย์ (.mp3)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-download" />
+            <span>ดาวน์โหลดวิดีโอ</span>
+          </label>
+        </div>
+
+        <div class="action-row">
+          <button class="btn btn-success btn-lg" id="btn-run">
+            <span class="btn-icon">▶️</span> เริ่มประมวลผล
+          </button>
+          <button class="btn btn-ghost" id="btn-clear-log">🗑️ ล้าง Log</button>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div id="progress-container" class="progress-container hidden">
+        <div class="progress-label">
+          <span id="progress-text">กำลังประมวลผล...</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Log Panel -->
+      <div class="card log-card">
+        <div class="log-header">
+          <span>📋 Log การทำงาน</span>
+          <span id="log-count" class="log-count">0 บรรทัด</span>
+        </div>
+        <div class="log-panel" id="log-panel">
+          <div class="log-placeholder">รอเริ่มการทำงาน...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Translate Tab -->
+    <section class="tab-panel" id="tab-translate">
+      <div class="panel-header">
+        <h1>🌏 แปลคำบรรยาย</h1>
+        <p class="subtitle">แปลไฟล์ .srt จากภาษาต้นทางเป็นภาษาไทย</p>
+      </div>
+      <div class="card">
+        <div class="input-group">
+          <label>เลือกไฟล์ .srt</label>
+          <div class="input-row">
+            <input type="text" id="srt-file-path" readonly placeholder="เลือกไฟล์ .srt..." />
+            <button class="btn btn-secondary" id="btn-choose-srt">📁 เลือกไฟล์</button>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="src-lang">ภาษาต้นทาง</label>
+          <select id="src-lang">
+            <option value="auto">อัตโนมัติ</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="zh-CN">中文 (简体)</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-lg" id="btn-translate">
+          🌏 แปลเป็นภาษาไทย
+        </button>
+      </div>
+      <div class="card log-card">
+        <div class="log-header"><span>📋 Log การแปล</span></div>
+        <div class="log-panel" id="log-translate"></div>
+      </div>
+    </section>
+
+    <!-- TTS Tab -->
+    <section class="tab-panel" id="tab-tts">
+      <div class="panel-header">
+        <h1>🔊 พากย์เสียงภาษาไทย</h1>
+        <p class="subtitle">สร้างไฟล์เสียงพากย์ไทยจากไฟล์ .srt</p>
+      </div>
+      <div class="card">
+        <div class="input-group">
+          <label>เลือกไฟล์ .srt ภาษาไทย</label>
+          <div class="input-row">
+            <input type="text" id="tts-file-path" readonly placeholder="เลือกไฟล์ .srt (TH)..." />
+            <button class="btn btn-secondary" id="btn-choose-tts-srt">📁 เลือกไฟล์</button>
+          </div>
+        </div>
+        <div class="options-row">
+          <div class="option-group">
+            <label for="tts-speed">ความเร็วเสียง</label>
+            <select id="tts-speed">
+              <option value="slow">ช้า</option>
+              <option value="normal" selected>ปกติ</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-lg" id="btn-tts">
+          🔊 สร้างเสียงพากย์
+        </button>
+      </div>
+      <div class="card log-card">
+        <div class="log-header"><span>📋 Log TTS</span></div>
+        <div class="log-panel" id="log-tts"></div>
+      </div>
+    </section>
+
+    <!-- AI Tab -->
+    <section class="tab-panel" id="tab-ai">
+      <div class="panel-header">
+        <h1>🤖 สรุปด้วย AI (Ollama)</h1>
+        <p class="subtitle">สรุปเนื้อหาจากคำบรรยายด้วยโมเดล AI ในเครื่อง</p>
+      </div>
+      <div class="card">
+        <div class="options-row">
+          <div class="option-group" style="flex:2">
+            <label for="model-select">โมเดล AI</label>
+            <div class="input-row">
+              <select id="model-select">
+                <option value="">-- กด 🔄 เพื่อโหลดรายการโมเดล --</option>
+              </select>
+              <button class="btn btn-secondary" id="btn-refresh-models" title="โหลดรายการโมเดล">🔄</button>
+            </div>
+          </div>
+          <div class="option-group">
+            <label for="ollama-host-input">Ollama Host</label>
+            <input type="text" id="ollama-host-input" value="127.0.0.1" />
+          </div>
+          <div class="option-group" style="flex:0.5">
+            <label for="ollama-port-input">Port</label>
+            <input type="number" id="ollama-port-input" value="11434" min="1" max="65535" />
+          </div>
+        </div>
+        <div class="input-group">
+          <label>ข้อความที่ต้องการสรุป</label>
+          <textarea id="ai-input" rows="6" placeholder="วางข้อความคำบรรยายที่ต้องการสรุปที่นี่..."></textarea>
+        </div>
+        <button class="btn btn-success btn-lg" id="btn-summarize">
+          🤖 สรุปด้วย AI
+        </button>
+      </div>
+      <div class="card">
+        <div class="log-header"><span>💡 ผลการสรุป</span></div>
+        <div class="log-panel" id="ai-result" style="white-space:pre-wrap;"></div>
+      </div>
+    </section>
+
+    <!-- Settings Tab -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="panel-header">
+        <h1>⚙️ ตั้งค่า</h1>
+        <p class="subtitle">ปรับแต่งการตั้งค่าของโปรแกรม</p>
+      </div>
+      <div class="card">
+        <h3>ทั่วไป</h3>
+        <div class="options-row">
+          <div class="option-group" style="flex:2">
+            <label>โฟลเดอร์บันทึกไฟล์เริ่มต้น</label>
+            <div class="input-row">
+              <input type="text" id="settings-output-dir" placeholder="~/Documents/GtsAlpha" />
+              <button class="btn btn-secondary" id="btn-settings-dir">📁</button>
+            </div>
+          </div>
+        </div>
+        <h3>Ollama AI</h3>
+        <div class="options-row">
+          <div class="option-group">
+            <label>Host</label>
+            <input type="text" id="settings-ollama-host" value="127.0.0.1" />
+          </div>
+          <div class="option-group" style="flex:0.5">
+            <label>Port</label>
+            <input type="number" id="settings-ollama-port" value="11434" />
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-save-settings">💾 บันทึกการตั้งค่า</button>
+      </div>
+
+      <div class="card">
+        <h3>เกี่ยวกับโปรแกรม</h3>
+        <div class="about-grid">
+          <div class="about-item">
+            <span class="about-label">ชื่อโปรแกรม</span>
+            <span class="about-value">GtsAlpha Caption Pro</span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">เวอร์ชัน</span>
+            <span class="about-value">v<span id="settings-version">1.0.0</span></span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">Framework</span>
+            <span class="about-value">Tauri v2 (Rust + WebView)</span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">WebView</span>
+            <span class="about-value">WebView2 (Windows) / WKWebView (macOS) / WebKitGTK (Linux)</span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">ใช้ Chromium?</span>
+            <span class="about-value about-no">❌ ไม่ฝัง Chromium (ต่างจาก Electron)</span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">ขนาดโปรแกรม</span>
+            <span class="about-value">~3-10 MB (เทียบ Electron ~120 MB+)</span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">Source Code</span>
+            <span class="about-value">
+              <a href="#" id="github-link" class="link">github.com/pripramot/GtsAlpha-Caption-Pro</a>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>

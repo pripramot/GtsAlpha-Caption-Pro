@@ -55,3 +55,12 @@ service_account.json
 # Logs
 *.log
 log.txt
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Node.js
+node_modules/
+npm-debug.log*
+package-lock.json

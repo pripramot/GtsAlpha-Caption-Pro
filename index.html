@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GtsAlpha Caption Pro — ดึงคำบรรยาย YouTube สู่ภาษาไทย</title>
+  <meta name="description" content="GtsAlpha Caption Pro — Desktop app ดึงคำบรรยาย YouTube แปลไทย พากย์เสียง AI สรุปเนื้อหา สร้างด้วย Tauri v2 (Rust + WebView)" />
+  <meta property="og:title" content="GtsAlpha Caption Pro" />
+  <meta property="og:description" content="Desktop app ดึงคำบรรยาย YouTube แปลไทย พากย์เสียง AI สรุปเนื้อหา" />
+  <meta property="og:type" content="website" />
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --card:      #1a1d27;
+      --border:    #2a2d42;
+      --accent:    #6c63ff;
+      --accent2:   #a855f7;
+      --success:   #22c55e;
+      --text:      #e8eaf0;
+      --muted:     #9aa0b8;
+      --danger:    #ef4444;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', 'Noto Sans Thai', 'Sarabun', sans-serif;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(15,17,23,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5vw;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-brand {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex; align-items: center; gap: 10px;
+      color: var(--text);
+    }
+    .navbar-links { display: flex; gap: 24px; }
+    .navbar-links a { font-size: 14px; color: var(--muted); }
+    .navbar-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 100px 5vw 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(108,99,255,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(108,99,255,0.15);
+      border: 1px solid rgba(108,99,255,0.35);
+      color: #a78bfa;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #e8eaf0 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.15s;
+      border: none;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #7b74ff; box-shadow: 0 4px 20px rgba(108,99,255,0.4); text-decoration: none; }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { background: var(--card); text-decoration: none; }
+
+    /* ── Section ── */
+    .section {
+      padding: 72px 5vw;
+    }
+    .section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 560px;
+      margin-bottom: 48px;
+    }
+
+    /* ── Features Grid ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .feature-icon { font-size: 30px; margin-bottom: 14px; }
+    .feature-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc { font-size: 13px; color: var(--muted); }
+
+    /* ── Tech Banner ── */
+    .tech-banner {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 14px;
+      padding: 28px 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      align-items: center;
+    }
+    .tech-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .tech-badge span { color: var(--muted); font-weight: 400; font-size: 13px; }
+    .tag {
+      background: rgba(108,99,255,0.15);
+      border: 1px solid rgba(108,99,255,0.3);
+      color: #a78bfa;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .no-chromium-note {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 20px;
+    }
+    .no-chromium-note strong { color: var(--text); }
+
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: 16px; }
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+    .step-num {
+      width: 32px; height: 32px; min-width: 32px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+    }
+    .step-content h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .step-content p  { font-size: 13px; color: var(--muted); }
+    .step-content code {
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,0.07);
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: #c4b5fd;
+    }
+
+    /* ── Download CTA ── */
+    .download-section {
+      padding: 80px 5vw;
+      text-align: center;
+    }
+    .download-cards {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 40px 0;
+    }
+    .download-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 32px;
+      min-width: 200px;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .download-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .download-card .os-icon { font-size: 36px; margin-bottom: 10px; }
+    .download-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .download-card p { font-size: 12px; color: var(--muted); }
+    .download-card a {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 8px 18px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .download-card a:hover { background: #7b74ff; text-decoration: none; }
+    .placeholder-link {
+      background: rgba(255,255,255,0.05) !important;
+      color: var(--muted) !important;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 5vw;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 12px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .navbar-links { display: none; }
+      .tech-banner { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navbar ── -->
+  <nav class="navbar">
+    <div class="navbar-brand">🎬 GtsAlpha Caption Pro</div>
+    <div class="navbar-links">
+      <a href="#features">ฟีเจอร์</a>
+      <a href="#tech">เทคโนโลยี</a>
+      <a href="#install">ติดตั้ง</a>
+      <a href="#download">ดาวน์โหลด</a>
+      <!-- [PLACEHOLDER] เพิ่มลิงก์เพิ่มเติมได้ที่นี่ -->
+    </div>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="hero-badge">🚀 Tauri v2 · Rust + WebView · ไม่ฝัง Chromium</div>
+    <h1>ดึงคำบรรยาย YouTube<br/>แปลไทย · พากย์เสียง · AI สรุป</h1>
+    <p>
+      Desktop App น้ำหนักเบา ทำงานเร็ว สร้างด้วย Tauri v2 บน Rust
+      รองรับ Windows · macOS · Linux
+    </p>
+    <div class="hero-actions">
+      <!-- [PLACEHOLDER] แทนที่ # ด้วยลิงก์ดาวน์โหลดจริงเมื่อ release -->
+      <a href="#download" class="btn btn-primary">📥 ดาวน์โหลดฟรี</a>
+      <!-- [PLACEHOLDER] แทนที่ # ด้วยลิงก์ GitHub Releases -->
+      <a href="https://github.com/pripramot/GtsAlpha-Caption-Pro" class="btn btn-outline" target="_blank" rel="noopener">⭐ GitHub</a>
+    </div>
+  </section>
+
+  <!-- ── Features ── -->
+  <section class="section" id="features">
+    <div class="section-inner">
+      <div class="section-label">ฟีเจอร์</div>
+      <h2 class="section-title">ทุกสิ่งที่ต้องการในโปรแกรมเดียว</h2>
+      <p class="section-sub">ครอบคลุมตั้งแต่การดึงคำบรรยายจนถึงการสรุปด้วย AI ทั้งหมดทำงานแบบ Offline</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📥</div>
+          <div class="feature-title">ดึงคำบรรยาย YouTube</div>
+          <div class="feature-desc">ดึง subtitle ทุกภาษาจาก YouTube พร้อม timestamp แบบ .srt มาตรฐาน</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌏</div>
+          <div class="feature-title">แปลเป็นภาษาไทย</div>
+          <div class="feature-desc">แปลอัตโนมัติผ่าน Google Translate พร้อมบันทึกเป็น .srt ฉบับไทย</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔊</div>
+          <div class="feature-title">พากย์เสียงไทย (TTS)</div>
+          <div class="feature-desc">สร้างไฟล์เสียง .mp3 ภาษาไทยจากคำบรรยายด้วย gTTS</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <div class="feature-title">AI สรุปเนื้อหา (Ollama)</div>
+          <div class="feature-desc">สรุปเนื้อหาด้วยโมเดล AI ในเครื่อง (Gemma2, Llama3, Mistral ฯลฯ) แบบ Privacy-first</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📹</div>
+          <div class="feature-title">ดาวน์โหลดวิดีโอ</div>
+          <div class="feature-desc">รองรับ YouTube และ X/Twitter (เฉพาะสาธารณะ) ด้วย yt-dlp</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌙</div>
+          <div class="feature-title">Dark Theme UI ภาษาไทย</div>
+          <div class="feature-desc">อินเทอร์เฟสภาษาไทยเต็มรูปแบบ ดีไซน์ Dark Mode สะอาดตา</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Technology ── -->
+  <section class="section" id="tech" style="background: rgba(26,29,39,0.5);">
+    <div class="section-inner">
+      <div class="section-label">สถาปัตยกรรม</div>
+      <h2 class="section-title">เทคโนโลยีที่ใช้</h2>
+      <p class="section-sub">เลือกสิ่งที่ดีที่สุดสำหรับ Desktop App — เบา เร็ว และปลอดภัย</p>
+
+      <div class="tech-banner">
+        <div class="tech-badge">
+          <span style="font-size:22px">🦀</span>
+          Backend — Rust
+          <span>ประสิทธิภาพสูง ปลอดภัย ไม่มี GC</span>
+        </div>
+        <div class="tech-badge">
+          <span style="font-size:22px">🌐</span>
+          Frontend — HTML / CSS / JS
+          <span>Web standard ไม่ต้องพึ่ง Framework ขนาดใหญ่</span>
+        </div>
+        <div class="tech-badge">
+          <span style="font-size:22px">🪟</span>
+          WebView2 (Windows)
+          <span>ใช้ Edge Chromium ที่ติดตั้งในระบบอยู่แล้ว</span>
+        </div>
+        <div class="tech-badge">
+          <span style="font-size:22px">🍎</span>
+          WKWebView (macOS)
+          <span>WebView ที่ใช้ใน Safari — Native Performance</span>
+        </div>
+        <div class="tech-badge">
+          <span style="font-size:22px">🐧</span>
+          WebKitGTK (Linux)
+          <span>WebKit สำหรับ Linux Desktop</span>
+        </div>
+        <div class="tag">Tauri v2</div>
+      </div>
+
+      <div class="no-chromium-note">
+        <strong>❌ ไม่ฝัง Chromium — ต่างจาก Electron อย่างไร?</strong><br/>
+        Tauri ใช้ WebView ของระบบปฏิบัติการที่มีอยู่แล้ว จึง<strong>ไม่ต้องดาวน์โหลดหรือรวม Chromium</strong>ไปกับโปรแกรม
+        ทำให้ขนาดไฟล์ติดตั้งของ Tauri อยู่ที่ <strong>~3–10 MB</strong> เทียบกับ Electron ที่มักเกิน <strong>120 MB</strong>
+        นอกจากนี้ยังใช้ RAM น้อยกว่า เนื่องจากไม่ต้องรัน Chromium instance แยกต่างหาก
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Install ── -->
+  <section class="section" id="install">
+    <div class="section-inner">
+      <div class="section-label">การติดตั้ง</div>
+      <h2 class="section-title">เริ่มต้นใช้งาน</h2>
+      <p class="section-sub">ติดตั้ง dependency ไม่กี่ขั้นตอนแล้วรันโปรแกรมได้ทันที</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>ติดตั้ง Rust Toolchain</h4>
+            <p>ดาวน์โหลดจาก <a href="https://rustup.rs" target="_blank">rustup.rs</a> หรือรัน:</p>
+            <p><code>curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh</code></p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>ติดตั้ง Node.js &amp; npm</h4>
+            <p>ดาวน์โหลดจาก <a href="https://nodejs.org" target="_blank">nodejs.org</a> (แนะนำ LTS v20+)</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Clone repository และติดตั้ง dependencies</h4>
+            <p>
+              <code>git clone https://github.com/pripramot/GtsAlpha-Caption-Pro.git</code><br/>
+              <code>cd GtsAlpha-Caption-Pro && npm install</code>
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>รันในโหมด Development</h4>
+            <p><code>npm run dev</code> — เปิดหน้าต่างแอปพร้อม Hot Reload</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h4>Build เป็นไฟล์ติดตั้ง</h4>
+            <p><code>npm run build</code> — สร้าง .exe / .dmg / .AppImage ใน <code>src-tauri/target/release/bundle/</code></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Download ── -->
+  <section class="download-section" id="download">
+    <div class="section-label" style="text-align:center;">ดาวน์โหลด</div>
+    <h2 class="section-title" style="font-size:clamp(22px,3vw,34px); font-weight:800;">เลือกแพลตฟอร์มของคุณ</h2>
+    <p style="color:var(--muted); margin-bottom:0;">รองรับทุกระบบปฏิบัติการ · ฟรี · Open Source</p>
+    <div class="download-cards">
+      <div class="download-card">
+        <div class="os-icon">🪟</div>
+        <h4>Windows</h4>
+        <p>Windows 10 / 11 x64</p>
+        <!-- [PLACEHOLDER] แทนที่ # ด้วย URL ดาวน์โหลด .msi หรือ .exe จาก GitHub Releases -->
+        <a href="#" class="placeholder-link">เร็วๆ นี้</a>
+      </div>
+      <div class="download-card">
+        <div class="os-icon">🍎</div>
+        <h4>macOS</h4>
+        <p>macOS 10.13+ (Intel &amp; Apple Silicon)</p>
+        <!-- [PLACEHOLDER] แทนที่ # ด้วย URL ดาวน์โหลด .dmg จาก GitHub Releases -->
+        <a href="#" class="placeholder-link">เร็วๆ นี้</a>
+      </div>
+      <div class="download-card">
+        <div class="os-icon">🐧</div>
+        <h4>Linux</h4>
+        <p>.deb / .rpm / .AppImage</p>
+        <!-- [PLACEHOLDER] แทนที่ # ด้วย URL ดาวน์โหลด AppImage จาก GitHub Releases -->
+        <a href="#" class="placeholder-link">เร็วๆ นี้</a>
+      </div>
+    </div>
+    <!-- [PLACEHOLDER] แทนที่ # ด้วยลิงก์ GitHub Releases จริง -->
+    <a href="https://github.com/pripramot/GtsAlpha-Caption-Pro/releases" class="btn btn-outline" target="_blank" rel="noopener">
+      📦 ดู GitHub Releases
+    </a>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <div class="footer-links">
+      <!-- [PLACEHOLDER] อัปเดตลิงก์ด้านล่างตามต้องการ -->
+      <a href="https://github.com/pripramot/GtsAlpha-Caption-Pro">GitHub</a>
+      <a href="https://github.com/pripramot/GtsAlpha-Caption-Pro/issues">รายงานปัญหา</a>
+      <a href="https://github.com/pripramot/GtsAlpha-Caption-Pro/releases">Releases</a>
+      <!-- [PLACEHOLDER] เพิ่ม link เอกสาร/เว็บไซต์เมื่อพร้อม -->
+    </div>
+    <p>© 2025 GtsAlpha · MIT License · สร้างด้วย ❤️ และ 🦀 Rust</p>
+  </footer>
+
+</body>
+</html>
