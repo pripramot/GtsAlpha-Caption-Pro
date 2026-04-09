@@ -2,8 +2,6 @@
 # PyInstaller spec file for GtsAlpha Caption Pro
 # Run:  pyinstaller GtsAlpha_Caption_Pro.spec
 
-block_cipher = None
-
 a = Analysis(
     ['src/GtsAlpha_Caption_Pro_Thai_Final.py'],
     pathex=['src'],
@@ -42,11 +40,10 @@ a = Analysis(
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
 )
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,

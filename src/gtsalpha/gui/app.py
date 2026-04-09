@@ -22,18 +22,23 @@ class App:
     def __init__(self) -> None:
         self.root = tk.Tk()
         self.root.title("GtsAlpha Caption Pro")
-        self.root.geometry("1000x820")
+        self.root.geometry("1000x860")
         self.root.configure(bg=T.BG)
         self.root.resizable(True, True)
 
         self.output_dir = os.getcwd()
+        self._action_buttons: list[tk.Button] = []
 
         self._build_header()
         self._build_input_card()
         self._build_model_selector()
         self._build_buttons()
+        self._build_progress()
         self._build_log_area()
         self._build_footer()
+
+        # Allow pressing Enter in the URL field to run caption + translate
+        self.url_entry.bind("<Return>", lambda _event: self._on_caption())
 
         self.log("ระบบพร้อมใช้งาน • วางลิงก์ YouTube หรือ X/Twitter แล้วกดปุ่ม")
         self.log("กด 🔄 เพื่อโหลดรายการโมเดลที่ติดตั้งใน Ollama")
@@ -165,7 +170,7 @@ class App:
             pady=10,
         )
 
-        tk.Button(
+        self._btn_download = tk.Button(
             btn_frame,
             text="📥  ดาวน์โหลดวิดีโอ",
             bg=T.BTN_DOWNLOAD_BG,
@@ -173,9 +178,10 @@ class App:
             activebackground=T.BTN_DOWNLOAD_ACTIVE,
             command=self._on_download,
             **btn_cfg,
-        ).grid(row=0, column=0, padx=10, pady=6)
+        )
+        self._btn_download.grid(row=0, column=0, padx=10, pady=6)
 
-        tk.Button(
+        self._btn_caption = tk.Button(
             btn_frame,
             text="📝  ดึง Caption + แปล + พากย์",
             bg=T.BTN_CAPTION_BG,
@@ -183,9 +189,10 @@ class App:
             activebackground=T.BTN_CAPTION_ACTIVE,
             command=self._on_caption,
             **btn_cfg,
-        ).grid(row=0, column=1, padx=10, pady=6)
+        )
+        self._btn_caption.grid(row=0, column=1, padx=10, pady=6)
 
-        tk.Button(
+        self._btn_summarize = tk.Button(
             btn_frame,
             text="🤖  สรุปด้วย AI",
             bg=T.BTN_SUMMARIZE_BG,
@@ -193,7 +200,33 @@ class App:
             activebackground=T.BTN_SUMMARIZE_ACTIVE,
             command=self._on_summarize,
             **btn_cfg,
-        ).grid(row=0, column=2, padx=10, pady=6)
+        )
+        self._btn_summarize.grid(row=0, column=2, padx=10, pady=6)
+
+        self._action_buttons = [self._btn_download, self._btn_caption, self._btn_summarize]
+
+    def _build_progress(self) -> None:
+        progress_frame = tk.Frame(self.root, bg=T.BG)
+        progress_frame.pack(pady=(0, 4), padx=60, fill="x")
+
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure(
+            "GtsAlpha.Horizontal.TProgressbar",
+            troughcolor=T.ENTRY_BG,
+            background=T.ACCENT,
+            thickness=6,
+        )
+
+        self._progress = ttk.Progressbar(
+            progress_frame,
+            mode="indeterminate",
+            style="GtsAlpha.Horizontal.TProgressbar",
+            length=400,
+        )
+        self._progress.pack()
+        # Hidden until an operation starts
+        self._progress.pack_forget()
 
     def _build_log_area(self) -> None:
         self.log_panel = LogPanel(self.root, self.root)
@@ -234,6 +267,18 @@ class App:
             self._dir_label.configure(text=chosen)
             self.log(f"เปลี่ยนโฟลเดอร์บันทึกเป็น: {chosen}")
 
+    def _set_busy(self, busy: bool) -> None:
+        """Disable/enable action buttons and show/hide the progress bar (main thread only)."""
+        state = "disabled" if busy else "normal"
+        for btn in self._action_buttons:
+            btn.configure(state=state)
+        if busy:
+            self._progress.pack(pady=(0, 4))
+            self._progress.start(12)
+        else:
+            self._progress.stop()
+            self._progress.pack_forget()
+
     def _run_in_thread(self, target) -> None:  # type: ignore[no-untyped-def]
         threading.Thread(target=target, daemon=True).start()
 
@@ -244,19 +289,30 @@ class App:
         if not url:
             return
 
+        self._set_busy(True)
+
         def run() -> None:
             try:
                 download_video(url, output_dir=self.output_dir, log_fn=self.log)
-                messagebox.showinfo(
-                    "สำเร็จ",
-                    f"ดาวน์โหลดวิดีโอเสร็จสมบูรณ์\nไฟล์อยู่ใน: {self.output_dir}",
+                out = self.output_dir
+                self.root.after(
+                    0,
+                    lambda d=out: messagebox.showinfo(
+                        "สำเร็จ",
+                        f"ดาวน์โหลดวิดีโอเสร็จสมบูรณ์\nไฟล์อยู่ใน: {d}",
+                    ),
                 )
             except Exception as e:
                 self.log(f"ดาวน์โหลดล้มเหลว: {e}")
-                messagebox.showerror(
-                    "ผิดพลาด",
-                    f"ดาวน์โหลดไม่สำเร็จ\n{e}\n\nโปรดตรวจสอบว่าเป็นวิดีโอสาธารณะ",
+                self.root.after(
+                    0,
+                    lambda err=str(e): messagebox.showerror(
+                        "ผิดพลาด",
+                        f"ดาวน์โหลดไม่สำเร็จ\n{err}\n\nโปรดตรวจสอบว่าเป็นวิดีโอสาธารณะ",
+                    ),
                 )
+            finally:
+                self.root.after(0, lambda: self._set_busy(False))
 
         self._run_in_thread(run)
 
@@ -264,6 +320,8 @@ class App:
         url = self._get_url()
         if not url:
             return
+
+        self._set_busy(True)
 
         def run() -> None:
             try:
@@ -274,16 +332,27 @@ class App:
                     output_dir=self.output_dir,
                     log_fn=self.log,
                 )
-                messagebox.showinfo(
-                    "สำเร็จ",
-                    "สร้างไฟล์ .srt (EN/TH) และเสียงพากย์ (.mp3) เรียบร้อยแล้ว",
+                self.root.after(
+                    0,
+                    lambda: messagebox.showinfo(
+                        "สำเร็จ",
+                        "สร้างไฟล์ .srt (EN/TH) และเสียงพากย์ (.mp3) เรียบร้อยแล้ว",
+                    ),
                 )
             except InvalidURLError as e:
                 self.log(f"URL ไม่ถูกต้อง: {e}")
-                messagebox.showerror("URL ไม่ถูกต้อง", str(e))
+                self.root.after(
+                    0,
+                    lambda err=str(e): messagebox.showerror("URL ไม่ถูกต้อง", err),
+                )
             except Exception as e:
                 self.log(f"เกิดข้อผิดพลาด: {e}")
-                messagebox.showerror("ผิดพลาด", str(e))
+                self.root.after(
+                    0,
+                    lambda err=str(e): messagebox.showerror("ผิดพลาด", err),
+                )
+            finally:
+                self.root.after(0, lambda: self._set_busy(False))
 
         self._run_in_thread(run)
 
@@ -297,6 +366,8 @@ class App:
             messagebox.showwarning("กรุณาเลือกโมเดล", "เลือกโมเดล AI ก่อนกดสรุปครับ")
             return
 
+        self._set_busy(True)
+
         def run() -> None:
             try:
                 self.log("กำลังดึงคำบรรยายเพื่อสรุป...")
@@ -307,22 +378,36 @@ class App:
 
                 summary = summarizer.summarize(th_text, model=selected_model, log_fn=self.log)
                 self.log(f"สรุปจาก {selected_model}:\n{summary}")
-                messagebox.showinfo(
-                    f"สรุปจาก {selected_model}",
-                    summary[:500] + ("..." if len(summary) > 500 else ""),
+                summary_short = summary[:500] + ("..." if len(summary) > 500 else "")
+                self.root.after(
+                    0,
+                    lambda mdl=selected_model, s=summary_short: messagebox.showinfo(
+                        f"สรุปจาก {mdl}", s
+                    ),
                 )
             except InvalidURLError as e:
                 self.log(f"URL ไม่ถูกต้อง: {e}")
-                messagebox.showerror("URL ไม่ถูกต้อง", str(e))
+                self.root.after(
+                    0,
+                    lambda err=str(e): messagebox.showerror("URL ไม่ถูกต้อง", err),
+                )
             except ConnectionError:
                 self.log(f"ไม่พบ Ollama กรุณารัน: ollama run {selected_model}")
-                messagebox.showerror(
-                    "ไม่พบ Ollama",
-                    f"โปรดติดตั้งและรัน Ollama ก่อน\nคำสั่ง: ollama run {selected_model}",
+                self.root.after(
+                    0,
+                    lambda mdl=selected_model: messagebox.showerror(
+                        "ไม่พบ Ollama",
+                        f"โปรดติดตั้งและรัน Ollama ก่อน\nคำสั่ง: ollama run {mdl}",
+                    ),
                 )
             except Exception as e:
                 self.log(f"เกิดข้อผิดพลาด: {e}")
-                messagebox.showerror("ผิดพลาด", str(e))
+                self.root.after(
+                    0,
+                    lambda err=str(e): messagebox.showerror("ผิดพลาด", err),
+                )
+            finally:
+                self.root.after(0, lambda: self._set_busy(False))
 
         self._run_in_thread(run)
 

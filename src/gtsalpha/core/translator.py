@@ -39,4 +39,7 @@ def translate_text(
             last_error = exc
             if attempt < max_retries - 1:
                 time.sleep(NETWORK_BACKOFF_FACTOR * (2**attempt))
-    raise last_error  # type: ignore[misc]
+
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("translate_text called with max_retries=0")
