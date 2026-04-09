@@ -1,0 +1,44 @@
+{
+  "name": "gtsalpha-caption-pro",
+  "version": "1.0.0",
+  "description": "GtsAlpha Caption Pro — YouTube caption extractor with Thai translation, TTS, and AI summarization. Desktop app built with Tauri v2 (Rust + WebView).",
+  "keywords": [
+    "tauri",
+    "youtube",
+    "caption",
+    "subtitle",
+    "thai",
+    "translation",
+    "tts",
+    "ollama",
+    "ai",
+    "desktop"
+  ],
+  "author": {
+    "name": "GtsAlpha",
+    "url": "https://github.com/pripramot"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pripramot/GtsAlpha-Caption-Pro.git"
+  },
+  "homepage": "https://github.com/pripramot/GtsAlpha-Caption-Pro#readme",
+  "bugs": {
+    "url": "https://github.com/pripramot/GtsAlpha-Caption-Pro/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.5.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0"
+  }
+}
